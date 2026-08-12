@@ -70,3 +70,26 @@ body {
 .column h3 {
   margin-top: 0;
 }
+
+.task-card {
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.task-card h4 {
+  margin: 0 0 8px;
+}
+
+.task-card p {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.priority {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
