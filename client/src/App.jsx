@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
-
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+} from "@hello-pangea/dnd";
 function App() {
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
 
 const [showTaskForm, setShowTaskForm] = useState(false);
-
+const [editingTask, setEditingTask] = useState(null);
+  
 const [newTask, setNewTask] = useState({
   title: "",
   description: "",
@@ -85,19 +90,99 @@ const handleCreateTask = async (event) => {
 
   const doneTasks = tasks.filter((task) => task.status === "done");
 
-  const renderTask = (task) => (
-    <div className="task-card" key={task._id}>
-      <h4>{task.title}</h4>
+const renderTask = (task) => (
+  <div className="task-card" key={task._id}>
+    <h4>{task.title}</h4>
 
-      {task.description && (
-        <p>{task.description}</p>
-      )}
+    {task.description && (
+      <p>{task.description}</p>
+    )}
 
-      <span className="priority">
-        {task.priority}
-      </span>
+    <span className="priority">
+      {task.priority}
+    </span>
+
+    <div className="task-actions">
+      <button
+        type="button"
+        onClick={() => setEditingTask(task)}
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleDeleteTask(task._id)}
+      >
+        Delete
+      </button>
     </div>
-  );
+  </div>
+);
+
+const handleDeleteTask = async (taskId) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    await axios.delete(
+      `http://localhost:5000/api/tasks/${taskId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task._id !== taskId)
+    );
+
+    setError("");
+  } catch (err) {
+    console.error(err);
+    setError("Unable to delete task");
+  }
+};
+
+const handleUpdateTask = async (event) => {
+  event.preventDefault();
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.put(
+      `http://localhost:5000/api/tasks/${editingTask._id}`,
+      {
+        title: editingTask.title,
+        description: editingTask.description,
+        status: editingTask.status,
+        priority: editingTask.priority,
+        dueDate: editingTask.dueDate || null,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task._id === editingTask._id
+          ? response.data.task
+          : task
+      )
+    );
+
+    setEditingTask(null);
+    setError("");
+  } catch (err) {
+    console.error(err);
+    setError("Unable to update task");
+  }
+};
+  
+
 
   return (
     <div className="app">
@@ -211,6 +296,87 @@ const handleCreateTask = async (event) => {
     </div>
   </form>
         )}      
+
+        {editingTask && (
+  <form className="task-form" onSubmit={handleUpdateTask}>
+    <h3>Edit Task</h3>
+
+    <label>
+      Task title
+      <input
+        type="text"
+        value={editingTask.title}
+        onChange={(event) =>
+          setEditingTask({
+            ...editingTask,
+            title: event.target.value,
+          })
+        }
+        required
+      />
+    </label>
+
+    <label>
+      Description
+      <textarea
+        value={editingTask.description}
+        onChange={(event) =>
+          setEditingTask({
+            ...editingTask,
+            description: event.target.value,
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Status
+      <select
+        value={editingTask.status}
+        onChange={(event) =>
+          setEditingTask({
+            ...editingTask,
+            status: event.target.value,
+          })
+        }
+      >
+        <option value="todo">To Do</option>
+        <option value="in-progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+
+    <label>
+      Priority
+      <select
+        value={editingTask.priority}
+        onChange={(event) =>
+          setEditingTask({
+            ...editingTask,
+            priority: event.target.value,
+          })
+        }
+      >
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+
+    <div className="form-actions">
+      <button type="submit">
+        Save Changes
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setEditingTask(null)}
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
+)}
         
         {error && <p>{error}</p>}
 

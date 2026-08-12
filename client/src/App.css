@@ -139,3 +139,16 @@ body {
   padding: 10px 16px;
   cursor: pointer;
 }
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.task-actions button {
+  padding: 6px 10px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
