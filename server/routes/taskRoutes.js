@@ -1,0 +1,142 @@
+const express = require("express");
+const Task = require("../models/Task");
+const protect = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
+router.post("/", protect, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      status,
+      priority,
+      assignedTo,
+      dueDate,
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "Task title is required",
+      });
+    }
+
+    const task = await Task.create({
+      title,
+      description,
+      status,
+      priority,
+      assignedTo,
+      dueDate,
+      createdBy: req.user._id,
+    });
+
+    res.status(201).json({
+      success: true,
+      task,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.get("/", protect, async (req, res) => {
+  try {
+    const tasks = await Task.find({
+      createdBy: req.user._id,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      tasks,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.put("/:id", protect, async (req, res) => {
+  try {
+    const task = await Task.findOne({
+      _id: req.params.id,
+      createdBy: req.user._id,
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    const allowedFields = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "assignedTo",
+      "dueDate",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        task[field] = req.body[field];
+      }
+    });
+
+    await task.save();
+
+    res.status(200).json({
+      success: true,
+      task,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    const task = await Task.findOneAndDelete({
+      _id: req.params.id,
+      createdBy: req.user._id,
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Task deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+module.exports = router;
