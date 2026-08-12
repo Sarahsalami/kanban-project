@@ -90,34 +90,45 @@ const handleCreateTask = async (event) => {
 
   const doneTasks = tasks.filter((task) => task.status === "done");
 
-const renderTask = (task) => (
-  <div className="task-card" key={task._id}>
-    <h4>{task.title}</h4>
+const renderTask = (task, index) => (
+  <Draggable
+    key={task._id}
+    draggableId={task._id}
+    index={index}
+  >
+    {(provided) => (
+      <div
+        className="task-card"
+        ref={provided.innerRef}
+        {...provided.draggableProps}
+        {...provided.dragHandleProps}
+      >
+        <h4>{task.title}</h4>
 
-    {task.description && (
-      <p>{task.description}</p>
+        {task.description && <p>{task.description}</p>}
+
+        <span className="priority">
+          {task.priority}
+        </span>
+
+        <div className="task-actions">
+          <button
+            type="button"
+            onClick={() => setEditingTask(task)}
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleDeleteTask(task._id)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     )}
-
-    <span className="priority">
-      {task.priority}
-    </span>
-
-    <div className="task-actions">
-      <button
-        type="button"
-        onClick={() => setEditingTask(task)}
-      >
-        Edit
-      </button>
-
-      <button
-        type="button"
-        onClick={() => handleDeleteTask(task._id)}
-      >
-        Delete
-      </button>
-    </div>
-  </div>
+  </Draggable>
 );
 
 const handleDeleteTask = async (taskId) => {
@@ -182,7 +193,75 @@ const handleUpdateTask = async (event) => {
   }
 };
   
+const handleDragEnd = async (result) => {
+  const { destination, source, draggableId } = result;
 
+  if (!destination) {
+    return;
+  }
+
+  if (
+    destination.droppableId === source.droppableId &&
+    destination.index === source.index
+  ) {
+    return;
+  }
+
+  const task = tasks.find((task) => task._id === draggableId);
+
+  if (!task) {
+    return;
+  }
+
+  const previousStatus = task.status;
+  const newStatus = destination.droppableId;
+
+  setTasks((currentTasks) =>
+    currentTasks.map((currentTask) =>
+      currentTask._id === draggableId
+        ? { ...currentTask, status: newStatus }
+        : currentTask
+    )
+  );
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.put(
+      `http://localhost:5000/api/tasks/${draggableId}`,
+      {
+        status: newStatus,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setTasks((currentTasks) =>
+      currentTasks.map((currentTask) =>
+        currentTask._id === draggableId
+          ? response.data.task
+          : currentTask
+      )
+    );
+
+    setError("");
+  } catch (err) {
+    console.error(err);
+
+    setTasks((currentTasks) =>
+      currentTasks.map((currentTask) =>
+        currentTask._id === draggableId
+          ? { ...currentTask, status: previousStatus }
+          : currentTask
+      )
+    );
+
+    setError("Unable to move task");
+  }
+};
 
   return (
     <div className="app">
@@ -381,22 +460,64 @@ const handleUpdateTask = async (event) => {
         {error && <p>{error}</p>}
 
 
-        <div className="board">
-          <section className="column">
-            <h3>To Do</h3>
-            {todoTasks.map(renderTask)}
-          </section>
+<DragDropContext onDragEnd={handleDragEnd}>
+  <div className="board">
+    <Droppable droppableId="todo">
+      {(provided) => (
+        <section
+          className="column"
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+        >
+          <h3>To Do</h3>
 
-          <section className="column">
-            <h3>In Progress</h3>
-            {inProgressTasks.map(renderTask)}
-          </section>
+          {todoTasks.map((task, index) =>
+            renderTask(task, index)
+          )}
 
-          <section className="column">
-            <h3>Done</h3>
-            {doneTasks.map(renderTask)}
-          </section>
-        </div>
+          {provided.placeholder}
+        </section>
+      )}
+    </Droppable>
+
+    <Droppable droppableId="in-progress">
+      {(provided) => (
+        <section
+          className="column"
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+        >
+          <h3>In Progress</h3>
+
+          {inProgressTasks.map((task, index) =>
+            renderTask(task, index)
+          )}
+
+          {provided.placeholder}
+        </section>
+      )}
+    </Droppable>
+
+    <Droppable droppableId="done">
+      {(provided) => (
+        <section
+          className="column"
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+        >
+          <h3>Done</h3>
+
+          {doneTasks.map((task, index) =>
+            renderTask(task, index)
+          )}
+
+          {provided.placeholder}
+        </section>
+      )}
+    </Droppable>
+  </div>
+        </DragDropContext>
+        
       </main>
     </div>
   );
