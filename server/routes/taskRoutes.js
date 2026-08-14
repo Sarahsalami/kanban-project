@@ -13,12 +13,13 @@ router.post("/", protect, async (req, res) => {
       priority,
       assignedTo,
       dueDate,
+      boardId,
     } = req.body;
 
-    if (!title) {
+    if (!title || !boardId) {
       return res.status(400).json({
         success: false,
-        message: "Task title is required",
+        message: "Task title and board ID are required",
       });
     }
 
@@ -29,6 +30,7 @@ router.post("/", protect, async (req, res) => {
       priority,
       assignedTo,
       dueDate,
+      boardId,
       createdBy: req.user._id,
     });
 
@@ -48,9 +50,19 @@ router.post("/", protect, async (req, res) => {
 
 router.get("/", protect, async (req, res) => {
   try {
+    const { boardId } = req.query;
+
+    if (!boardId) {
+      return res.status(400).json({
+        success: false,
+        message: "Board ID is required",
+      });
+    }
+    
     const tasks = await Task.find({
-      createdBy: req.user._id,
-    }).sort({ createdAt: -1 });
+  boardId,
+}).sort({ createdAt: -1 });
+
 
     res.status(200).json({
       success: true,
@@ -68,10 +80,7 @@ router.get("/", protect, async (req, res) => {
 
 router.put("/:id", protect, async (req, res) => {
   try {
-    const task = await Task.findOne({
-      _id: req.params.id,
-      createdBy: req.user._id,
-    });
+    const task = await Task.findById(req.params.id);
 
     if (!task) {
       return res.status(404).json({
@@ -113,10 +122,7 @@ router.put("/:id", protect, async (req, res) => {
 
 router.delete("/:id", protect, async (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({
-      _id: req.params.id,
-      createdBy: req.user._id,
-    });
+    const task = await Task.findByIdAndDelete(req.params.id);
 
     if (!task) {
       return res.status(404).json({
