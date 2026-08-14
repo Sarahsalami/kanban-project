@@ -1,10 +1,15 @@
 const express = require("express");
 const Task = require("../models/Task");
 const protect = require("../middleware/authMiddleware");
+const requireBoardRole = require("../middleware/boardRoleMiddleware");
 
 const router = express.Router();
 
-router.post("/", protect, async (req, res) => {
+router.post(
+  "/",
+  protect,
+  requireBoardRole(["owner", "manager"]),
+  async (req, res) => {
   try {
     const {
       title,
@@ -58,7 +63,7 @@ router.get("/", protect, async (req, res) => {
         message: "Board ID is required",
       });
     }
-    
+
     const tasks = await Task.find({
   boardId,
 }).sort({ createdAt: -1 });
@@ -78,7 +83,7 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-router.put("/:id", protect, async (req, res) => {
+router.put("/:id", protect, requireBoardRole(["owner", "manager"]), async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
 
