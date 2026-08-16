@@ -6,6 +6,8 @@ const taskRoutes = require("./routes/taskRoutes");
 const boardRoutes = require("./routes/boardRoutes");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const activityRoutes = require("./routes/activityRoutes");
+
 
 const app = express();
 
@@ -15,6 +17,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/boards", boardRoutes);
+app.use("/api/activity", activityRoutes);
 
 connectDB();
 

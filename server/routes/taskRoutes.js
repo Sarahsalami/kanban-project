@@ -2,6 +2,8 @@ const express = require("express");
 const Task = require("../models/Task");
 const protect = require("../middleware/authMiddleware");
 const requireBoardRole = require("../middleware/boardRoleMiddleware");
+const ActivityLog = require("../models/ActivityLog");
+
 
 const router = express.Router();
 
@@ -29,20 +31,31 @@ router.post(
     }
 
     const task = await Task.create({
-      title,
-      description,
-      status,
-      priority,
-      assignedTo,
-      dueDate,
-      boardId,
-      createdBy: req.user._id,
-    });
+  title,
+  description,
+  status,
+  priority,
+  assignedTo,
+  dueDate,
+  boardId,
+  createdBy: req.user._id,
+});
 
-    res.status(201).json({
-      success: true,
-      task,
-    });
+await ActivityLog.create({
+  boardId: task.boardId,
+  user: req.user._id,
+  action: "TASK_CREATED",
+  taskId: task._id,
+  metadata: {
+    title: task.title,
+  },
+});
+
+res.status(201).json({
+  success: true,
+  task,
+});
+
   } catch (error) {
     console.error(error);
 
@@ -83,7 +96,39 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-router.put("/:id", protect, requireBoardRole(["owner", "manager"]), async (req, res) => {
+router.put(
+  "/:id",
+  protect,
+
+  async (req, res, next) => {
+    try {
+      const task = await Task.findById(req.params.id);
+
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          message: "Task not found",
+        });
+      }
+
+      const previousStatus = task.status;
+      req.body = req.body || {};
+      req.body.boardId = task.boardId;
+
+      next();
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
+    }
+  },
+
+  requireBoardRole(["owner", "manager", "member"]),
+
+  async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
 
@@ -93,6 +138,8 @@ router.put("/:id", protect, requireBoardRole(["owner", "manager"]), async (req, 
         message: "Task not found",
       });
     }
+
+    const previousStatus = task.status;
 
     const allowedFields = [
       "title",
@@ -111,6 +158,21 @@ router.put("/:id", protect, requireBoardRole(["owner", "manager"]), async (req, 
 
     await task.save();
 
+    await ActivityLog.create({
+      boardId: task.boardId,
+      user: req.user._id,
+      action:
+        previousStatus !== task.status
+          ? "TASK_MOVED"
+          : "TASK_UPDATED",
+      taskId: task._id,
+      metadata: {
+        title: task.title,
+        previousStatus,
+        newStatus: task.status,
+      },
+    });
+
     res.status(200).json({
       success: true,
       task,
@@ -123,31 +185,75 @@ router.put("/:id", protect, requireBoardRole(["owner", "manager"]), async (req, 
       message: "Server error",
     });
   }
-});
+}
+);
 
-router.delete("/:id", protect, async (req, res) => {
-  try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+router.delete(
+  "/:id",
+  protect,
 
-    if (!task) {
-      return res.status(404).json({
+  async (req, res, next) => {
+    try {
+      const task = await Task.findById(req.params.id);
+
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          message: "Task not found",
+        });
+      }
+
+      req.body = req.body || {};
+      req.body.boardId = task.boardId;
+      next();
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
         success: false,
-        message: "Task not found",
+        message: "Server error",
       });
     }
+  },
 
-    res.status(200).json({
-      success: true,
-      message: "Task deleted successfully",
-    });
-  } catch (error) {
-    console.error(error);
+  requireBoardRole(["owner", "manager"]),
 
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+  async (req, res) => {
+    try {
+      const task = await Task.findById(req.params.id);
+
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          message: "Task not found",
+        });
+      }
+
+      await Task.findByIdAndDelete(req.params.id);
+
+      await ActivityLog.create({
+        boardId: task.boardId,
+        user: req.user._id,
+        action: "TASK_DELETED",
+        taskId: task._id,
+        metadata: {
+          title: task.title,
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
+    }
   }
-});
+);
 
 module.exports = router;
