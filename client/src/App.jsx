@@ -9,6 +9,8 @@ import {
 function App() {
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
+  const [activities, setActivities] = useState([]);
+  const boardId = "6a7ede6f2cd428df16d0e9dd";
 
 const [showTaskForm, setShowTaskForm] = useState(false);
 const [editingTask, setEditingTask] = useState(null);
@@ -28,8 +30,11 @@ const handleCreateTask = async (event) => {
     const token = localStorage.getItem("token");
 
     const response = await axios.post(
-      "http://localhost:5000/api/tasks",
-      newTask,
+  "http://localhost:5000/api/tasks",
+  {
+    ...newTask,
+    boardId,
+  },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -58,29 +63,34 @@ const handleCreateTask = async (event) => {
   }
 };
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const token = localStorage.getItem("token");
+useEffect(() => {
+  const fetchTasks = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        const response = await axios.get(
-          "http://localhost:5000/api/tasks",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      const response = await axios.get(
+        `http://localhost:5000/api/tasks?boardId=${boardId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        setTasks(response.data.tasks);
-      } catch (err) {
-        console.error(err);
-        setError("Unable to load tasks");
-      }
-    };
+      setTasks(response.data.tasks);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load tasks");
+    }
+  };
 
-    fetchTasks();
-  }, []);
+  fetchTasks();
+}, [boardId]);
+
+
+useEffect(() => {
+  fetchActivities();
+}, [boardId]); 
 
   const todoTasks = tasks.filter((task) => task.status === "todo");
 
@@ -263,6 +273,25 @@ const handleDragEnd = async (result) => {
   }
 };
 
+    const fetchActivities = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get(
+      `http://localhost:5000/api/activity?boardId=${boardId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setActivities(response.data.activities);
+  } catch (err) {
+    console.error("Unable to load activity:", err);
+  }
+    };
+  
   return (
     <div className="app">
       <header className="topbar">
@@ -516,8 +545,40 @@ const handleDragEnd = async (result) => {
       )}
     </Droppable>
   </div>
-        </DragDropContext>
-        
+</DragDropContext>
+     <section className="activity-panel">
+  <h3>Recent Activity</h3>
+
+  {activities.length === 0 ? (
+    <p>No activity yet.</p>
+  ) : (
+    activities.map((activity) => (
+      <div className="activity-item" key={activity._id}>
+        <strong>{activity.user?.name || "Unknown user"}</strong>
+
+        {activity.action === "TASK_CREATED" && (
+          <span> created "{activity.metadata?.title}"</span>
+        )}
+
+        {activity.action === "TASK_UPDATED" && (
+          <span> updated "{activity.metadata?.title}"</span>
+        )}
+
+        {activity.action === "TASK_MOVED" && (
+          <span>
+            {" "}moved "{activity.metadata?.title}" from{" "}
+            {activity.metadata?.previousStatus} to{" "}
+            {activity.metadata?.newStatus}
+          </span>
+        )}
+
+        {activity.action === "TASK_DELETED" && (
+          <span> deleted "{activity.metadata?.title}"</span>
+        )}
+      </div>
+    ))
+  )}
+</section>   
       </main>
     </div>
   );
