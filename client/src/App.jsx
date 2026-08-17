@@ -118,15 +118,30 @@ useEffect(() => {
       currentTasks.filter((task) => task._id !== taskId)
     );
   };
+const handleActivityCreated = (activity) => {
+  setActivities((currentActivities) => {
+    const alreadyExists = currentActivities.some(
+      (currentActivity) => currentActivity._id === activity._id
+    );
 
+    if (alreadyExists) {
+      return currentActivities;
+    }
+
+    return [activity, ...currentActivities];
+  });
+};
+  
   socket.on("taskCreated", handleTaskCreated);
   socket.on("taskUpdated", handleTaskUpdated);
   socket.on("taskDeleted", handleTaskDeleted);
+  socket.on("activityCreated", handleActivityCreated);
 
   return () => {
     socket.off("taskCreated", handleTaskCreated);
     socket.off("taskUpdated", handleTaskUpdated);
     socket.off("taskDeleted", handleTaskDeleted);
+    socket.off("activityCreated", handleActivityCreated);
   };
 }, []);
 
