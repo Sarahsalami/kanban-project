@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import socket from "./socket";
 import "./App.css";
 import {
   DragDropContext,
@@ -87,11 +88,62 @@ useEffect(() => {
   fetchTasks();
 }, [boardId]);
 
+useEffect(() => {
+  const handleTaskCreated = (task) => {
+    setTasks((currentTasks) => {
+      const alreadyExists = currentTasks.some(
+        (currentTask) => currentTask._id === task._id
+      );
+
+      if (alreadyExists) {
+        return currentTasks;
+      }
+
+      return [task, ...currentTasks];
+    });
+  };
+
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task._id === updatedTask._id
+          ? updatedTask
+          : task
+      )
+    );
+  };
+
+  const handleTaskDeleted = (taskId) => {
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task._id !== taskId)
+    );
+  };
+
+  socket.on("taskCreated", handleTaskCreated);
+  socket.on("taskUpdated", handleTaskUpdated);
+  socket.on("taskDeleted", handleTaskDeleted);
+
+  return () => {
+    socket.off("taskCreated", handleTaskCreated);
+    socket.off("taskUpdated", handleTaskUpdated);
+    socket.off("taskDeleted", handleTaskDeleted);
+  };
+}, []);
 
 useEffect(() => {
   fetchActivities();
 }, [boardId]); 
 
+useEffect(() => {
+  socket.emit("joinBoard", boardId);
+
+  console.log("Joined Socket.IO board:", boardId);
+
+  return () => {
+    socket.emit("leaveBoard", boardId);
+  };
+}, [boardId]);
+  
   const todoTasks = tasks.filter((task) => task.status === "todo");
 
   const inProgressTasks = tasks.filter(

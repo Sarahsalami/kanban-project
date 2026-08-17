@@ -51,6 +51,8 @@ await ActivityLog.create({
   },
 });
 
+req.io.to(task.boardId.toString()).emit("taskCreated", task);   
+    
 res.status(201).json({
   success: true,
   task,
@@ -157,6 +159,9 @@ router.put(
     });
 
     await task.save();
+    req.io
+  .to(task.boardId.toString())
+  .emit("taskUpdated", task);
 
     await ActivityLog.create({
       boardId: task.boardId,
@@ -240,6 +245,10 @@ router.delete(
           title: task.title,
         },
       });
+
+      req.io
+  .to(task.boardId.toString())
+  .emit("taskDeleted", task._id.toString());
 
       res.status(200).json({
         success: true,
