@@ -31,7 +31,7 @@ const taskSchema = new mongoose.Schema(
       ref: "Board",
       required: true,
     },
-    
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -48,12 +48,15 @@ const taskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    version: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
-
-
 
 module.exports = mongoose.model("Task", taskSchema);

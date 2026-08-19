@@ -232,44 +232,6 @@ const handleDeleteTask = async (taskId) => {
   }
 };
 
-const handleUpdateTask = async (event) => {
-  event.preventDefault();
-
-  try {
-    const token = localStorage.getItem("token");
-
-    const response = await axios.put(
-      `http://localhost:5000/api/tasks/${editingTask._id}`,
-      {
-        title: editingTask.title,
-        description: editingTask.description,
-        status: editingTask.status,
-        priority: editingTask.priority,
-        dueDate: editingTask.dueDate || null,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task._id === editingTask._id
-          ? response.data.task
-          : task
-      )
-    );
-
-    setEditingTask(null);
-    setError("");
-  } catch (err) {
-    console.error(err);
-    setError("Unable to update task");
-  }
-};
-  
 const handleDragEnd = async (result) => {
   const { destination, source, draggableId } = result;
 
@@ -284,7 +246,9 @@ const handleDragEnd = async (result) => {
     return;
   }
 
-  const task = tasks.find((task) => task._id === draggableId);
+  const task = tasks.find(
+    (task) => task._id === draggableId
+  );
 
   if (!task) {
     return;
@@ -308,6 +272,7 @@ const handleDragEnd = async (result) => {
       `http://localhost:5000/api/tasks/${draggableId}`,
       {
         status: newStatus,
+        version: task.version,
       },
       {
         headers: {
@@ -328,6 +293,24 @@ const handleDragEnd = async (result) => {
   } catch (err) {
     console.error(err);
 
+    if (err.response?.status === 409) {
+      const latestTask = err.response.data.currentTask;
+
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask._id === latestTask._id
+            ? latestTask
+            : currentTask
+        )
+      );
+
+      setError(
+        "This task was changed by another user. The latest version has been loaded."
+      );
+
+      return;
+    }
+
     setTasks((currentTasks) =>
       currentTasks.map((currentTask) =>
         currentTask._id === draggableId
@@ -339,7 +322,65 @@ const handleDragEnd = async (result) => {
     setError("Unable to move task");
   }
 };
+const handleUpdateTask = async (event) => {
+  event.preventDefault();
 
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.put(
+      `http://localhost:5000/api/tasks/${editingTask._id}`,
+      {
+        title: editingTask.title,
+        description: editingTask.description,
+        status: editingTask.status,
+        priority: editingTask.priority,
+        dueDate: editingTask.dueDate || null,
+        version: editingTask.version,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task._id === editingTask._id
+          ? response.data.task
+          : task
+      )
+    );
+
+    setEditingTask(null);
+    setError("");
+  } catch (err) {
+    console.error(err);
+
+    if (err.response?.status === 409) {
+      const latestTask = err.response.data.currentTask;
+
+      setTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task._id === latestTask._id
+            ? latestTask
+            : task
+        )
+      );
+
+      setEditingTask(null);
+
+      setError(
+        "This task was changed by another user. The latest version has been loaded."
+      );
+
+      return;
+    }
+
+    setError("Unable to update task");
+  }
+};
     const fetchActivities = async () => {
   try {
     const token = localStorage.getItem("token");

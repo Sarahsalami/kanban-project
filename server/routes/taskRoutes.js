@@ -142,16 +142,25 @@ router.put(
 
   async (req, res) => {
     try {
-      const task = await Task.findById(req.params.id);
+      const clientVersion = req.body.version;
 
-      if (!task) {
+      if (clientVersion === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: "Task version is required",
+        });
+      }
+
+      const currentTask = await Task.findById(req.params.id);
+
+      if (!currentTask) {
         return res.status(404).json({
           success: false,
           message: "Task not found",
         });
       }
 
-      const previousStatus = task.status;
+      const previousStatus = currentTask.status;
 
       const allowedFields = [
         "title",
@@ -162,13 +171,40 @@ router.put(
         "dueDate",
       ];
 
+      const updates = {};
+
       allowedFields.forEach((field) => {
         if (req.body[field] !== undefined) {
-          task[field] = req.body[field];
+          updates[field] = req.body[field];
         }
       });
 
-      await task.save();
+      const task = await Task.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          version: clientVersion,
+        },
+        {
+          $set: updates,
+          $inc: {
+            version: 1,
+          },
+        },
+        {
+          returnDocument: "after",
+          runValidators: true,
+}
+      );
+
+      if (!task) {
+        const latestTask = await Task.findById(req.params.id);
+
+        return res.status(409).json({
+          success: false,
+          message: "This task has been updated by another user",
+          currentTask: latestTask,
+        });
+      }
 
       req.io
         .to(task.boardId.toString())
