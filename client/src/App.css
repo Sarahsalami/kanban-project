@@ -174,3 +174,45 @@ body {
 .activity-item:last-child {
   border-bottom: none;
 }
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 28px;
+}
+
+.auth-form h1,
+.auth-form h2 {
+  margin-top: 0;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.auth-form input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.auth-form button {
+  width: 100%;
+  padding: 10px 16px;
+  cursor: pointer;
+}

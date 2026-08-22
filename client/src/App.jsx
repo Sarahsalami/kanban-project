@@ -11,8 +11,33 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
   const [activities, setActivities] = useState([]);
-  const boardId = "6a7ede6f2cd428df16d0e9dd";
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(
+  Boolean(localStorage.getItem("token"))
+);
 
+const [currentUser, setCurrentUser] = useState(null);
+
+const [loginForm, setLoginForm] = useState({
+  email: "",
+  password: "",
+});
+const [showRegister, setShowRegister] = useState(false);
+
+const [registerForm, setRegisterForm] = useState({
+  name: "",
+  email: "",
+  password: "",
+});
+const [members, setMembers] = useState([]);
+
+const [newMember, setNewMember] = useState({
+  email: "",
+  role: "member",
+});
+  const [showMemberForm, setShowMemberForm] = useState(false);
+  
+const boardId = "6a7ede6f2cd428df16d0e9dd";
 const [showTaskForm, setShowTaskForm] = useState(false);
 const [editingTask, setEditingTask] = useState(null);
   
@@ -65,6 +90,10 @@ const handleCreateTask = async (event) => {
 };
 
 useEffect(() => {
+  if (!isLoggedIn) {
+    return;
+  }
+
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -79,6 +108,7 @@ useEffect(() => {
       );
 
       setTasks(response.data.tasks);
+      setError("");
     } catch (err) {
       console.error(err);
       setError("Unable to load tasks");
@@ -86,7 +116,7 @@ useEffect(() => {
   };
 
   fetchTasks();
-}, [boardId]);
+}, [boardId, isLoggedIn]);
 
 useEffect(() => {
   const handleTaskCreated = (task) => {
@@ -102,7 +132,6 @@ useEffect(() => {
       return [task, ...currentTasks];
     });
   };
-
   const handleTaskUpdated = (updatedTask) => {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
@@ -146,9 +175,44 @@ const handleActivityCreated = (activity) => {
 }, []);
 
 useEffect(() => {
-  fetchActivities();
-}, [boardId]); 
+  if (isLoggedIn) {
+    fetchActivities();
+  }
+}, [boardId, isLoggedIn]);
 
+useEffect(() => {
+  const fetchCurrentUser = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setCurrentUser(null);
+      setIsLoggedIn(false);
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/me",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setCurrentUser(response.data.user);
+      setIsLoggedIn(true);
+    } catch (err) {
+      console.error(err);
+
+      localStorage.removeItem("token");
+      setCurrentUser(null);
+      setIsLoggedIn(false);
+    }
+  };
+
+  fetchCurrentUser();
+}, []);
 useEffect(() => {
   socket.emit("joinBoard", boardId);
 
@@ -400,11 +464,197 @@ const handleUpdateTask = async (event) => {
   }
     };
   
+  const handleLogin = async (event) => {
+  event.preventDefault();
+
+  try {
+    const response = await axios.post(
+      "http://localhost:5000/api/auth/login",
+      {
+        email: loginForm.email,
+        password: loginForm.password,
+      }
+    );
+
+    localStorage.setItem("token", response.data.token);
+
+    setCurrentUser(response.data.user);
+    setIsLoggedIn(true);
+    setError("");
+
+    setLoginForm({
+      email: "",
+      password: "",
+    });
+  } catch (err) {
+    console.error(err);
+
+    setError(
+      err.response?.data?.message || "Unable to login"
+    );
+  }
+  };
+
+const handleRegister = async (event) => {
+  event.preventDefault();
+
+  try {
+    const response = await axios.post(
+      "http://localhost:5000/api/auth/register",
+      {
+        name: registerForm.name,
+        email: registerForm.email,
+        password: registerForm.password,
+      }
+    );
+
+    localStorage.setItem("token", response.data.token);
+
+    setCurrentUser(response.data.user);
+    setIsLoggedIn(true);
+    setShowRegister(false);
+    setError("");
+
+    setRegisterForm({
+      name: "",
+      email: "",
+      password: "",
+    });
+  } catch (err) {
+    console.error(err);
+
+    setError(
+      err.response?.data?.message || "Unable to register"
+    );
+  }
+};
+
+if (!isLoggedIn) {
+  return (
+    <div className="auth-page">
+      <form
+        className="auth-form"
+        onSubmit={showRegister ? handleRegister : handleLogin}
+      >
+        <h1>Northstar Digital</h1>
+
+        <h2>
+          {showRegister
+            ? "Create an account"
+            : "Sign in to your board"}
+        </h2>
+
+        {showRegister && (
+          <label>
+            Name
+            <input
+              type="text"
+              value={registerForm.name}
+              onChange={(event) =>
+                setRegisterForm({
+                  ...registerForm,
+                  name: event.target.value,
+                })
+              }
+              required
+            />
+          </label>
+        )}
+
+        <label>
+          Email
+          <input
+            type="email"
+            value={
+              showRegister
+                ? registerForm.email
+                : loginForm.email
+            }
+            onChange={(event) => {
+              if (showRegister) {
+                setRegisterForm({
+                  ...registerForm,
+                  email: event.target.value,
+                });
+              } else {
+                setLoginForm({
+                  ...loginForm,
+                  email: event.target.value,
+                });
+              }
+            }}
+            required
+          />
+        </label>
+
+        <label>
+          Password
+          <input
+            type="password"
+            value={
+              showRegister
+                ? registerForm.password
+                : loginForm.password
+            }
+            onChange={(event) => {
+              if (showRegister) {
+                setRegisterForm({
+                  ...registerForm,
+                  password: event.target.value,
+                });
+              } else {
+                setLoginForm({
+                  ...loginForm,
+                  password: event.target.value,
+                });
+              }
+            }}
+            required
+          />
+        </label>
+
+        <button type="submit">
+          {showRegister ? "Register" : "Sign In"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowRegister(!showRegister);
+            setError("");
+          }}
+        >
+          {showRegister
+            ? "Already have an account? Sign in"
+            : "Need an account? Register"}
+        </button>
+
+        {error && <p>{error}</p>}
+      </form>
+    </div>
+  );
+}
+  
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  setCurrentUser(null);
+  setIsLoggedIn(false);
+  setTasks([]);
+  setActivities([]);
+  setError("");
+};  
+
   return (
     <div className="app">
       <header className="topbar">
         <h1>Kanban Board</h1>
-        <div className="user-info">Test User</div>
+
+        <div className="user-info">
+          <span>{currentUser?.name || "User"}</span>
+          <button type="button" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="dashboard">
