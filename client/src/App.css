@@ -374,3 +374,9 @@ body {
   outline: none;
   border-color: #9fb8ad;
 }
+
+.assignee {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #686e73;
+}

@@ -46,6 +46,7 @@ const [newTask, setNewTask] = useState({
   description: "",
   status: "todo",
   priority: "medium",
+  assignedTo: "",
   dueDate: "",
 });
   
@@ -74,12 +75,13 @@ const handleCreateTask = async (event) => {
     ]);
 
     setNewTask({
-      title: "",
-      description: "",
-      status: "todo",
-      priority: "medium",
-      dueDate: "",
-    });
+  title: "",
+  description: "",
+  status: "todo",
+  priority: "medium",
+  assignedTo: "",
+  dueDate: "",
+});
 
     setShowTaskForm(false);
     setError("");
@@ -260,7 +262,17 @@ const renderTask = (task, index) => (
 
         <span className="priority">
           {task.priority}
+          
         </span>
+        <p className="assignee">
+  Assigned to:{" "}
+  {task.assignedTo?.name ||
+    members.find(
+      (member) =>
+        (member.user?._id || member.user) === task.assignedTo
+    )?.user?.name ||
+    "Unassigned"}
+</p>
 
         <div className="task-actions">
           <button
@@ -409,6 +421,10 @@ const handleUpdateTask = async (event) => {
         description: editingTask.description,
         status: editingTask.status,
         priority: editingTask.priority,
+        assignedTo:
+    editingTask.assignedTo?._id ||
+    editingTask.assignedTo ||
+    null,
         dueDate: editingTask.dueDate || null,
         version: editingTask.version,
       },
@@ -924,19 +940,81 @@ const handleRoleChange = async (memberId, newRole) => {
       </select>
     </label>
 
-    <label>
-      Due date
-      <input
-        type="date"
-        value={newTask.dueDate}
-        onChange={(event) =>
-          setNewTask({
-            ...newTask,
-            dueDate: event.target.value,
-          })
-        }
-      />
-    </label>
+<label>
+  Assign to
+  <select
+    value={newTask.assignedTo || ""}
+    onChange={(event) =>
+      setNewTask({
+        ...newTask,
+        assignedTo: event.target.value || null,
+      })
+    }
+  >
+    <option value="">Unassigned</option>
+
+    {members.map((member) => (
+      <option
+        key={member.user?._id || member.user}
+        value={member.user?._id || member.user}
+      >
+        {member.user?.name || "Unknown user"}
+      </option>
+    ))}
+  </select>
+</label>
+
+<label>
+  Due date
+  <input
+    type="date"
+    value={newTask.dueDate}
+    onChange={(event) =>
+      setNewTask({
+        ...newTask,
+        dueDate: event.target.value,
+      })
+    }
+  />
+</label>
+
+<label>
+  Assign to
+  <select
+    value={newTask.assignedTo || ""}
+    onChange={(event) =>
+      setNewTask({
+        ...newTask,
+        assignedTo: event.target.value || null,
+      })
+    }
+  >
+    <option value="">Unassigned</option>
+
+    {members.map((member) => (
+      <option
+        key={member.user?._id || member.user}
+        value={member.user?._id || member.user}
+      >
+        {member.user?.name || "Unknown user"}
+      </option>
+    ))}
+  </select>
+</label>
+
+<label>
+  Due date
+  <input
+    type="date"
+    value={newTask.dueDate}
+    onChange={(event) =>
+      setNewTask({
+        ...newTask,
+        dueDate: event.target.value,
+      })
+    }
+  />
+</label>
 
     <div className="form-actions">
       <button type="submit">
@@ -1015,9 +1093,37 @@ const handleRoleChange = async (memberId, newRole) => {
       >
         <option value="low">Low</option>
         <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select>
-    </label>
+                <option value="high">High</option>
+              </select>
+            </label>
+            
+<label>
+  Assign to
+  <select
+    value={
+      editingTask.assignedTo?._id ||
+      editingTask.assignedTo ||
+      ""
+    }
+    onChange={(event) =>
+      setEditingTask({
+        ...editingTask,
+        assignedTo: event.target.value || null,
+      })
+    }
+  >
+    <option value="">Unassigned</option>
+
+    {members.map((member) => (
+      <option
+        key={member.user?._id || member.user}
+        value={member.user?._id || member.user}
+      >
+        {member.user?.name || "Unknown user"}
+      </option>
+    ))}
+  </select>
+</label>
 
     <div className="form-actions">
       <button type="submit">
@@ -1035,7 +1141,6 @@ const handleRoleChange = async (memberId, newRole) => {
 )}
         
         {error && <p>{error}</p>}
-
 
 <DragDropContext onDragEnd={handleDragEnd}>
   <div className="board">
