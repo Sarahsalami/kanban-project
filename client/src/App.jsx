@@ -175,12 +175,6 @@ const handleActivityCreated = (activity) => {
 }, []);
 
 useEffect(() => {
-  if (isLoggedIn) {
-    fetchActivities();
-  }
-}, [boardId, isLoggedIn]);
-
-useEffect(() => {
   const fetchCurrentUser = async () => {
     const token = localStorage.getItem("token");
 
@@ -213,7 +207,24 @@ useEffect(() => {
 
   fetchCurrentUser();
 }, []);
+  
 useEffect(() => {
+  if (isLoggedIn) {
+    fetchActivities();
+  }
+}, [boardId, isLoggedIn]);
+  
+useEffect(() => {
+  if (isLoggedIn) {
+    fetchBoardMembers();
+  }
+}, [isLoggedIn, boardId]);
+  
+useEffect(() => {
+  if (!isLoggedIn) {
+    return;
+  }
+
   socket.emit("joinBoard", boardId);
 
   console.log("Joined Socket.IO board:", boardId);
@@ -221,8 +232,7 @@ useEffect(() => {
   return () => {
     socket.emit("leaveBoard", boardId);
   };
-}, [boardId]);
-  
+}, [boardId, isLoggedIn]);
   const todoTasks = tasks.filter((task) => task.status === "todo");
 
   const inProgressTasks = tasks.filter(
@@ -445,7 +455,8 @@ const handleUpdateTask = async (event) => {
     setError("Unable to update task");
   }
 };
-    const fetchActivities = async () => {
+
+const fetchActivities = async () => {
   try {
     const token = localStorage.getItem("token");
 
@@ -462,8 +473,9 @@ const handleUpdateTask = async (event) => {
   } catch (err) {
     console.error("Unable to load activity:", err);
   }
-    };
-  
+};
+
+
   const handleLogin = async (event) => {
   event.preventDefault();
 
@@ -644,6 +656,69 @@ if (!isLoggedIn) {
   setError("");
 };  
 
+const fetchBoardMembers = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.get(
+      "http://localhost:5000/api/boards",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const board = response.data.boards.find(
+      (board) => board._id === boardId
+    );
+
+    if (board) {
+      setMembers(board.members);
+    }
+  } catch (err) {
+    console.error("Unable to load board members:", err);
+  }
+};
+
+  const handleAddMember = async (event) => {
+  event.preventDefault();
+
+  try {
+    const token = localStorage.getItem("token");
+
+    await axios.post(
+      `http://localhost:5000/api/boards/${boardId}/members`,
+      {
+        email: newMember.email,
+        role: newMember.role,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setNewMember({
+      email: "",
+      role: "member",
+    });
+
+    setShowMemberForm(false);
+    setError("");
+
+    await fetchBoardMembers();
+  } catch (err) {
+    console.error(err);
+
+    setError(
+      err.response?.data?.message || "Unable to add member"
+    );
+  }
+  };
+  
+
   return (
     <div className="app">
       <header className="topbar">
@@ -657,16 +732,84 @@ if (!isLoggedIn) {
         </div>
       </header>
 
-      <main className="dashboard">
-        <div className="dashboard-header">
-          <h2>My Board</h2>
-          <button
-            className="add-task-button"
-            onClick={() => setShowTaskForm(true)}
-          >
-            + Add Task
-          </button>
+<main className="dashboard">
+  <div className="dashboard-header">
+  <div className="team-menu">
+    <button
+      type="button"
+      className="team-menu-button"
+      onClick={() => setShowMemberForm(!showMemberForm)}
+    >
+      {showMemberForm ? "Team Members ▴" : "Team Members ▾"}
+    </button>
+
+    {showMemberForm && (
+      <div className="team-dropdown">
+        <div className="members-list">
+          {members.map((member) => (
+            <div
+              className="member-item"
+              key={member.user?._id || member.user}
+            >
+              <div>
+                <strong>
+                  {member.user?.name || "Unknown user"}
+                </strong>
+                <p>{member.user?.email || ""}</p>
+              </div>
+
+              <span className="member-role">
+                {member.role}
+              </span>
+            </div>
+          ))}
         </div>
+
+        <form
+          className="member-form"
+          onSubmit={handleAddMember}
+        >
+          <input
+            type="email"
+            placeholder="Member email"
+            value={newMember.email}
+            onChange={(event) =>
+              setNewMember({
+                ...newMember,
+                email: event.target.value,
+              })
+            }
+            required
+          />
+
+          <select
+            value={newMember.role}
+            onChange={(event) =>
+              setNewMember({
+                ...newMember,
+                role: event.target.value,
+              })
+            }
+          >
+            <option value="member">Member</option>
+            <option value="manager">Manager</option>
+          </select>
+
+          <button type="submit">
+            Add
+          </button>
+        </form>
+          </div>
+    )}
+  </div>
+
+  <button
+    className="add-task-button"
+    onClick={() => setShowTaskForm(true)}
+  >
+    + Add Task
+  </button>
+</div>
 
         {showTaskForm && (
   <form className="task-form" onSubmit={handleCreateTask}>
@@ -936,7 +1079,8 @@ if (!isLoggedIn) {
       </div>
     ))
   )}
-</section>   
+        </section>   
+        
       </main>
     </div>
   );

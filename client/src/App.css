@@ -10,6 +10,11 @@ body {
 
 .app {
   min-height: 100vh;
+  background-color: #f3faf7;
+}
+
+.topbar h1 {
+  color: #555b61;
 }
 
 .topbar {
@@ -177,6 +182,7 @@ body {
 
 .auth-page {
   min-height: 100vh;
+  background-color: #f3faf7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,10 +197,13 @@ body {
   border-radius: 10px;
   padding: 28px;
 }
+.auth-form h1 {
+  color: #555b61;
+}
 
-.auth-form h1,
 .auth-form h2 {
   margin-top: 0;
+  color: #686e73;
 }
 
 .auth-form label {
@@ -216,3 +225,132 @@ body {
   padding: 10px 16px;
   cursor: pointer;
 }
+
+.members-panel {
+  margin-bottom: 24px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.members-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.members-header h3 {
+  margin: 0;
+}
+
+.member-form {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
+.member-form label {
+  flex: 1;
+  font-weight: 600;
+}
+
+.member-form input,
+.member-form select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.members-list {
+  display: grid;
+  gap: 10px;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.member-item p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.member-role {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.team-menu {
+  position: relative;
+}
+
+.team-menu-button {
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.team-dropdown {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  width: 340px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 14px;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.team-dropdown .member-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.team-dropdown .member-item:last-child {
+  border-bottom: none;
+}
+
+.team-dropdown .member-item p {
+  margin: 3px 0 0;
+  font-size: 12px;
+}
+
+.team-dropdown .member-role {
+  font-size: 12px;
+}
+
+.team-dropdown .member-form {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.team-dropdown .member-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-dropdown .member-form select {
+  width: 100px;
+}
+
