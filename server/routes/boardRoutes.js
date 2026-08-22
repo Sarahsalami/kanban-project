@@ -130,5 +130,67 @@ router.post("/:boardId/members", protect, async (req, res) => {
   }
 });
 
+router.put(
+  "/:boardId/members/:memberId",
+  protect,
+  async (req, res) => {
+    try {
+      const { boardId, memberId } = req.params;
+      const { role } = req.body;
+
+      if (!["member", "manager"].includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid role",
+        });
+      }
+
+      const board = await Board.findById(boardId);
+
+      if (!board) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+
+      if (board.owner.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Only the board owner can change member roles",
+        });
+      }
+
+      const member = board.members.find(
+        (boardMember) =>
+          boardMember.user.toString() === memberId
+      );
+
+      if (!member) {
+        return res.status(404).json({
+          success: false,
+          message: "Member not found",
+        });
+      }
+
+      member.role = role;
+
+      await board.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Member role updated successfully",
+        member,
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
+    }
+  }
+);
 
 module.exports = router;

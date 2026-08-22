@@ -718,6 +718,39 @@ const fetchBoardMembers = async () => {
   }
   };
   
+const handleRoleChange = async (memberId, newRole) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    await axios.put(
+      `http://localhost:5000/api/boards/${boardId}/members/${memberId}`,
+      {
+        role: newRole,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setMembers((currentMembers) =>
+      currentMembers.map((member) =>
+        member.user?._id === memberId
+          ? { ...member, role: newRole }
+          : member
+      )
+    );
+
+    setError("");
+  } catch (err) {
+    console.error(err);
+
+    setError(
+      err.response?.data?.message || "Unable to update member role"
+    );
+  }
+};
 
   return (
     <div className="app">
@@ -758,9 +791,23 @@ const fetchBoardMembers = async () => {
                 <p>{member.user?.email || ""}</p>
               </div>
 
-              <span className="member-role">
-                {member.role}
-              </span>
+              {member.role === "owner" ? (
+  <span className="member-role">Owner</span>
+) : (
+  <select
+    className="member-role-select"
+    value={member.role}
+    onChange={(event) =>
+      handleRoleChange(
+        member.user?._id || member.user,
+        event.target.value
+      )
+    }
+  >
+    <option value="member">Member</option>
+    <option value="manager">Manager</option>
+  </select>
+)}
             </div>
           ))}
         </div>

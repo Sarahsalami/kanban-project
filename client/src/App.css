@@ -354,3 +354,23 @@ body {
   width: 100px;
 }
 
+.member-role-select {
+  padding: 6px 8px;
+  border: 1px solid #cfcfcf;
+  border-radius: 5px;
+  background-color: #ffffff;
+  color: #555b61;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.member-role-select option {
+  background-color: #ffffff;
+  color: #333333;
+}
+
+.member-role-select:focus {
+  outline: none;
+  border-color: #9fb8ad;
+}
