@@ -34,8 +34,6 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/boards", boardRoutes);
 app.use("/api/activity", activityRoutes);
 
-connectDB();
-
 app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
@@ -63,6 +61,12 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  connectDB();
+
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
