@@ -82,10 +82,19 @@ const handleCreateTask = async (event) => {
       }
     );
 
-    setTasks((currentTasks) => [
-      response.data.task,
-      ...currentTasks,
-    ]);
+    setTasks((currentTasks) => {
+  const createdTask = response.data.task;
+
+  const alreadyExists = currentTasks.some(
+    (task) => task._id === createdTask._id
+  );
+
+  if (alreadyExists) {
+    return currentTasks;
+  }
+
+  return [...currentTasks, createdTask];
+});
 
     setNewTask({
   title: "",
@@ -134,19 +143,20 @@ useEffect(() => {
 }, [boardId, isLoggedIn]);
 
 useEffect(() => {
+  
   const handleTaskCreated = (task) => {
-    setTasks((currentTasks) => {
-      const alreadyExists = currentTasks.some(
-        (currentTask) => currentTask._id === task._id
-      );
+  setTasks((currentTasks) => {
+    const alreadyExists = currentTasks.some(
+      (currentTask) => currentTask._id === task._id
+    );
 
-      if (alreadyExists) {
-        return currentTasks;
-      }
+    if (alreadyExists) {
+      return currentTasks;
+    }
 
-      return [task, ...currentTasks];
-    });
-  };
+    return [...currentTasks, task];
+  });
+};
   const handleTaskUpdated = (updatedTask) => {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
@@ -158,14 +168,18 @@ useEffect(() => {
   };
 
   const handleTaskDeleted = (taskId) => {
-    setTasks((currentTasks) =>
-      currentTasks.filter((task) => task._id !== taskId)
-    );
-  };
-const handleActivityCreated = (activity) => {
+  setTasks((currentTasks) =>
+    currentTasks.filter(
+      (task) => task._id !== taskId
+    )
+  );
+};
+
+  const handleActivityCreated = (activity) => {
   setActivities((currentActivities) => {
     const alreadyExists = currentActivities.some(
-      (currentActivity) => currentActivity._id === activity._id
+      (currentActivity) =>
+        currentActivity._id === activity._id
     );
 
     if (alreadyExists) {
@@ -1053,114 +1067,109 @@ const handleRoleChange = async (memberId, newRole) => {
         )}      
 
         {editingTask && (
-  <form className="task-form" onSubmit={handleUpdateTask}>
-    <h3>Edit Task</h3>
+          <form className="task-form" onSubmit={handleUpdateTask}>
+            <h3>Edit Task</h3>
 
-    <label>
-      Task title
-      <input
-        type="text"
-        value={editingTask.title}
-        onChange={(event) =>
-          setEditingTask({
-            ...editingTask,
-            title: event.target.value,
-          })
-        }
-        required
-      />
-    </label>
+            <label>
+              Task title
+              <input
+                type="text"
+                value={editingTask.title}
+                onChange={(event) =>
+                  setEditingTask({
+                    ...editingTask,
+                    title: event.target.value,
+                  })
+                }
+                required
+              />
+            </label>
 
-    <label>
-      Description
-      <textarea
-        value={editingTask.description}
-        onChange={(event) =>
-          setEditingTask({
-            ...editingTask,
-            description: event.target.value,
-          })
-        }
-      />
-    </label>
+            <label>
+              Description
+              <textarea
+                value={editingTask.description}
+                onChange={(event) =>
+                  setEditingTask({
+                    ...editingTask,
+                    description: event.target.value,
+                  })
+                }
+              />
+            </label>
 
-    <label>
-      Status
-      <select
-        value={editingTask.status}
-        onChange={(event) =>
-          setEditingTask({
-            ...editingTask,
-            status: event.target.value,
-          })
-        }
-      >
-        <option value="todo">To Do</option>
-        <option value="in-progress">In Progress</option>
-        <option value="done">Done</option>
-      </select>
-    </label>
+            <label>
+              Status
+              <select
+                value={editingTask.status}
+                onChange={(event) =>
+                  setEditingTask({
+                    ...editingTask,
+                    status: event.target.value,
+                  })
+                }
+              >
+                <option value="todo">To Do</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </label>
 
-    <label>
-      Priority
-      <select
-        value={editingTask.priority}
-        onChange={(event) =>
-          setEditingTask({
-            ...editingTask,
-            priority: event.target.value,
-          })
-        }
-      >
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
+            <label>
+              Priority
+              <select
+                value={editingTask.priority}
+                onChange={(event) =>
+                  setEditingTask({
+                    ...editingTask,
+                    priority: event.target.value,
+                  })
+                }
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
                 <option value="high">High</option>
               </select>
             </label>
-            
-<label>
-  Assign to
-  <select
-    value={
-      editingTask.assignedTo?._id ||
-      editingTask.assignedTo ||
-      ""
-    }
-    onChange={(event) =>
-      setEditingTask({
-        ...editingTask,
-        assignedTo: event.target.value || null,
-      })
-    }
-  >
-    <option value="">Unassigned</option>
 
-    {members.map((member) => (
-      <option
-        key={member.user?._id || member.user}
-        value={member.user?._id || member.user}
-      >
-        {member.user?.name || "Unknown user"}
-      </option>
-    ))}
-  </select>
-</label>
+            <label>
+              Assign to
+              <select
+                value={
+                  editingTask.assignedTo?._id ||
+                  editingTask.assignedTo ||
+                  ""
+                }
+                onChange={(event) =>
+                  setEditingTask({
+                    ...editingTask,
+                    assignedTo: event.target.value || null,
+                  })
+                }
+              >
+                <option value="">Unassigned</option>
+                {users?.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-    <div className="form-actions">
-      <button type="submit">
-        Save Changes
-      </button>
+            <div className="form-actions">
+              <button type="submit">
+                Save Changes
+              </button>
 
-      <button
-        type="button"
-        onClick={() => setEditingTask(null)}
-      >
-        Cancel
-      </button>
-    </div>
-  </form>
-)}
-
+              <button
+                type="button"
+                onClick={() => setEditingTask(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
         </div>
 
         {error && <p>{error}</p>}
