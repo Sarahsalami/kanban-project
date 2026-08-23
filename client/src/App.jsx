@@ -53,6 +53,19 @@ const [newTask, setNewTask] = useState({
 const handleCreateTask = async (event) => {
   event.preventDefault();
 
+  if (!newTask.title.trim()) {
+    setError("Task title is required.");
+    return;
+  }
+
+  if (
+    newTask.dueDate &&
+    new Date(newTask.dueDate) < new Date().setHours(0, 0, 0, 0)
+  ) {
+    setError("Due date cannot be in the past.");
+    return;
+  }
+
   try {
     const token = localStorage.getItem("token");
 
@@ -235,6 +248,22 @@ useEffect(() => {
     socket.emit("leaveBoard", boardId);
   };
 }, [boardId, isLoggedIn]);
+  
+  const currentUserId =
+  currentUser?._id || currentUser?.id;
+
+const currentBoardMember = members.find(
+  (member) =>
+    (member.user?._id || member.user) === currentUserId
+);
+
+const currentUserRole = currentBoardMember?.role || null;
+
+const canManageTasks =
+  currentUserRole === "owner" || currentUserRole === "manager";
+
+const canManageMembers =
+  currentUserRole === "owner";
   const todoTasks = tasks.filter((task) => task.status === "todo");
 
   const inProgressTasks = tasks.filter(
@@ -262,7 +291,7 @@ const renderTask = (task, index) => (
 
         <span className="priority">
           {task.priority}
-          
+
         </span>
         <p className="assignee">
   Assigned to:{" "}
@@ -277,17 +306,24 @@ const renderTask = (task, index) => (
         <div className="task-actions">
           <button
             type="button"
-            onClick={() => setEditingTask(task)}
+            onClick={() => {
+  setEditingTask(task);
+  setError("");
+}}
           >
             Edit
           </button>
-
+        {canManageTasks && (
           <button
             type="button"
-            onClick={() => handleDeleteTask(task._id)}
+            onClick={() => {
+              handleDeleteTask(task._id);
+              setError("");
+            }}
           >
             Delete
-          </button>
+            </button>
+        )}
         </div>
       </div>
     )}
@@ -410,6 +446,11 @@ const handleDragEnd = async (result) => {
 };
 const handleUpdateTask = async (event) => {
   event.preventDefault();
+
+  if (!editingTask.title.trim()) {
+  setError("Task title is required.");
+    return;
+  }
 
   try {
     const token = localStorage.getItem("token");
@@ -787,7 +828,10 @@ const handleRoleChange = async (memberId, newRole) => {
     <button
       type="button"
       className="team-menu-button"
-      onClick={() => setShowMemberForm(!showMemberForm)}
+      onClick={() => {
+  setShowMemberForm(!showMemberForm);
+  setError("");
+}}
     >
       {showMemberForm ? "Team Members ▴" : "Team Members ▾"}
     </button>
@@ -807,8 +851,14 @@ const handleRoleChange = async (memberId, newRole) => {
                 <p>{member.user?.email || ""}</p>
               </div>
 
-              {member.role === "owner" ? (
-  <span className="member-role">Owner</span>
+              {member.role === "owner" || !canManageMembers ? (
+  <span className="member-role">
+    {member.role === "owner"
+      ? "Owner"
+      : member.role === "manager"
+      ? "Manager"
+      : "Member"}
+  </span>
 ) : (
   <select
     className="member-role-select"
@@ -827,7 +877,7 @@ const handleRoleChange = async (memberId, newRole) => {
             </div>
           ))}
         </div>
-
+      {canManageMembers && (
         <form
           className="member-form"
           onSubmit={handleAddMember}
@@ -862,17 +912,22 @@ const handleRoleChange = async (memberId, newRole) => {
             Add
           </button>
         </form>
-          </div>
-    )}
-  </div>
+      )}
+    </div>
+  )}
+</div>
 
+  {canManageTasks && (
   <button
     className="add-task-button"
-    onClick={() => setShowTaskForm(true)}
+    onClick={() => {
+      setShowTaskForm(true);
+      setError("");
+    }}
   >
     + Add Task
   </button>
-</div>
+)}
 
         {showTaskForm && (
   <form className="task-form" onSubmit={handleCreateTask}>
@@ -978,43 +1033,6 @@ const handleRoleChange = async (memberId, newRole) => {
   />
 </label>
 
-<label>
-  Assign to
-  <select
-    value={newTask.assignedTo || ""}
-    onChange={(event) =>
-      setNewTask({
-        ...newTask,
-        assignedTo: event.target.value || null,
-      })
-    }
-  >
-    <option value="">Unassigned</option>
-
-    {members.map((member) => (
-      <option
-        key={member.user?._id || member.user}
-        value={member.user?._id || member.user}
-      >
-        {member.user?.name || "Unknown user"}
-      </option>
-    ))}
-  </select>
-</label>
-
-<label>
-  Due date
-  <input
-    type="date"
-    value={newTask.dueDate}
-    onChange={(event) =>
-      setNewTask({
-        ...newTask,
-        dueDate: event.target.value,
-      })
-    }
-  />
-</label>
 
     <div className="form-actions">
       <button type="submit">
@@ -1023,7 +1041,10 @@ const handleRoleChange = async (memberId, newRole) => {
 
       <button
         type="button"
-        onClick={() => setShowTaskForm(false)}
+        onClick={() => {
+          setShowTaskForm(false);
+          setError("");
+        }}
       >
         Cancel
       </button>
@@ -1139,7 +1160,9 @@ const handleRoleChange = async (memberId, newRole) => {
     </div>
   </form>
 )}
-        
+
+        </div>
+
         {error && <p>{error}</p>}
 
 <DragDropContext onDragEnd={handleDragEnd}>
