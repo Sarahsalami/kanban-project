@@ -1148,11 +1148,14 @@ const handleRoleChange = async (memberId, newRole) => {
                 }
               >
                 <option value="">Unassigned</option>
-                {users?.map((user) => (
-                  <option key={user._id} value={user._id}>
-                    {user.name}
-                  </option>
-                ))}
+                  {members.map((member) => (
+                    <option
+                      key={member.user?._id || member.user}
+                      value={member.user?._id || member.user}
+                    >
+                      {member.user?.name || "Unknown user"}
+                    </option>
+                  ))}
               </select>
             </label>
 
